@@ -1,0 +1,144 @@
+  #define _XOPEN_SOURCE_EXTENDED 1
+
+  #include <stdio.h>
+  #include <string.h>
+  #include <sys/socket.h>
+  #include <arpa/inet.h>
+  #include <unistd.h>
+  #include <stdlib.h>
+  #include <sys/types.h>
+  #include <fcntl.h>
+  #include <netinet/in.h>
+
+  int sock;    //variabile globale
+  int client;
+
+  int close(int client);     //definire metode
+  void afisare();
+  int citire();
+  int prelucrare(int optiune);
+
+
+  int main(int argc, char const* argv[]){
+
+      int c1;
+
+            do{
+              afisare();
+              c1=citire();
+              prelucrare(c1);
+            }  while (c1 != '4');
+
+      return 0;
+  }
+
+
+  void afisare(){    //functie de afisare meniu
+    printf("\n1. Conectare server\n");
+    printf("2. Deconectare de la server\n");
+    printf("3. Rulare comanda \"GET / HTTP/1.0\\r\\n\\r\\n \" \n");
+    printf("4. Iesire din aplicatie!\n");
+    printf("Introduceti optiunea dorita: \n\n");
+  }
+
+
+  int citire(){    // functie de preluare comanda data de la tastatura
+    int c, c1, i;
+    i = 0;
+    do{
+      c= getchar();
+      if(i==0)
+          c1=c;
+      ++i;
+    } while (c!= '\n');
+      return c1;
+  }
+
+
+  int prelucrare(int optiune){      
+      int valread;
+      struct sockaddr_in serv_addr;
+      char* comanda=  "GET / HTTP/1.0\r\n\r\n";
+      char buffer[1024]={0};
+ 
+
+    switch (optiune){
+
+    case '1':
+                printf("Se conecteaza la server...\n");
+                if((sock=socket(AF_INET, SOCK_STREAM, 0))<0){   //creare socket
+                    printf("\nEroare creare socket\n");
+                    return -1;
+                }
+                
+                serv_addr.sin_addr.s_addr= inet_addr("64.90.34.130");   //adresa ip
+                serv_addr.sin_family=AF_INET;     //ipv4
+                serv_addr.sin_port=htons(80);     //port 80
+                
+
+                if(inet_pton(AF_INET, "64.90.34.130", &serv_addr.sin_addr)<=0){    
+                  printf("\nAdresa invalida!\n");
+                  return -1;
+                }
+
+                client = connect(sock, (struct sockaddr*) &serv_addr, sizeof(serv_addr));  //conectare la server
+                if(client < 0){
+                  printf("\nConectare esuata!\n");
+                  return -1;
+                }
+                else printf("Conectare efectuata cu succes!\n");
+                break;
+    
+    case '2':
+              if(client == 0){       
+                  close(client);      //deconectare
+                  printf("\nDeconectare efectuata.\n"); 
+              }
+              else printf("\nNu sunteti conectat la server! Deconectarea nu s-a putut efectua!\n");
+              break;
+    case '3':
+                           
+         valread=send(sock, comanda, strlen(comanda), 0);  // trimitere comanda
+         if((valread < 0)|| (client < 0)){             
+              printf("\nComanda nu a fost trimisa! Verificati daca socketul a fost creat.\n");
+              return -1;
+         } else printf ("Comanda Html trimisa\n");
+
+        
+        char RTC[] = "index.html";          
+        FILE *out = fopen(RTC, "wt");      // deschidere fisierul 
+        if (out == NULL) {
+                  fprintf(stderr, "ERROR: Can't open file %s", RTC);  //verificare deschidere fisier
+                  return -1;
+              }
+
+        do{
+              valread = recv(sock, buffer, sizeof(buffer), 0); // primire raspuns de la server
+
+              if(valread > 0){
+                  
+                  printf("%s\n", buffer);    // afisare pe ecran
+                  fprintf(out, "%s\n", buffer);   // scriere in fisier
+            }
+              else if(valread==0)       
+                printf("Conexiune incheiata\n");
+              else 
+                printf("Recv failed!\n");
+
+           memset(&buffer, '\0', sizeof(buffer));    // curatare buffer 
+         }  while(valread > 0);
+
+         break;
+
+
+    case '4':
+          printf("Iesire aplicatie.\n");     
+          break;
+
+    default:
+           printf("Optiune neimplementata!\n");     
+    }
+     
+    return 0;
+  }
+
