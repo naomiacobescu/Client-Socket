@@ -90,8 +90,8 @@
                 break;
     
     case '2':
-              if(client == 0){       
-                  close(client);      //deconectare
+              if(sock > 0){       
+                  close(sock);      //deconectare
                   printf("\nDeconectare efectuata.\n"); 
               }
               else printf("\nNu sunteti conectat la server! Deconectarea nu s-a putut efectua!\n");
